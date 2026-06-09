@@ -64,7 +64,8 @@ export default function ExecutiveDashboard() {
 
   const handlePushCloud = async () => {
     await pushLocalToCloud();
-    alert(t('dashboard.pushToCloudDone'));
+    const status = useAppStore.getState().syncStatus;
+    alert(status === 'synced' ? t('dashboard.pushToCloudDone') : t('dashboard.pushToCloudFail'));
   };
 
   return (

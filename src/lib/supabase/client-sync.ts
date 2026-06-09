@@ -2,6 +2,7 @@
 
 import type { SyncEntity } from '@/lib/supabase/config';
 import type { SyncPayload } from '@/lib/supabase/data-service';
+import { prepareRecordForSync, pushPayloadRecords } from '@/lib/sync/prepare-record';
 
 export type SyncStatus = 'local' | 'syncing' | 'synced' | 'error' | 'offline';
 
@@ -28,7 +29,7 @@ async function postSync(body: unknown) {
 }
 
 export async function remoteUpsert(entity: SyncEntity, record: { id: string }) {
-  await postSync({ action: 'upsert', entity, record });
+  await postSync({ action: 'upsert', entity, record: prepareRecordForSync(entity, record) });
 }
 
 export async function remoteDelete(entity: SyncEntity, id: string) {
@@ -36,5 +37,5 @@ export async function remoteDelete(entity: SyncEntity, id: string) {
 }
 
 export async function remotePushAll(data: SyncPayload) {
-  await postSync({ action: 'push_all', data });
+  await pushPayloadRecords(data, remoteUpsert);
 }

@@ -187,12 +187,19 @@ export const useAppStore = create<AppState>()(
             hasLocalOnly(merged.customerExperiences, cloud.customerExperiences) ||
             hasLocalOnly(merged.documents, cloud.documents);
 
-          if (needsPush) await remotePushAll(merged);
+          if (needsPush) {
+            try {
+              await remotePushAll(merged);
+            } catch {
+              set({ syncStatus: 'error' });
+              return;
+            }
+          }
 
           set({ syncStatus: 'synced' });
           await flushPendingSync(() => get().syncStatus, (syncStatus) => set({ syncStatus }));
         } catch {
-          set({ syncStatus: 'offline' });
+          set({ syncStatus: 'error' });
         }
       },
       pushLocalToCloud: async () => {

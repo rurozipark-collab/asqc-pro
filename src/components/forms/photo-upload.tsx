@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { Camera, X, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n/use-translation';
+import { compressImageFile } from '@/lib/sync/compress-image';
 
 interface PhotoUploadProps {
   photos: string[];
@@ -15,25 +16,24 @@ export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProp
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
     const remaining = maxPhotos - photos.length;
     const toProcess = Array.from(files).slice(0, remaining);
+    const nextPhotos = [...photos];
 
-    toProcess.forEach((file) => {
-      if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const result = ev.target?.result as string;
-        if (result) {
-          onChange([...photos, result]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    for (const file of toProcess) {
+      if (!file.type.startsWith('image/')) continue;
+      try {
+        nextPhotos.push(await compressImageFile(file));
+      } catch {
+        continue;
+      }
+    }
 
+    onChange(nextPhotos.slice(0, maxPhotos));
     if (inputRef.current) inputRef.current.value = '';
   };
 
