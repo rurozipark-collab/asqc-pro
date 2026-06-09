@@ -7,6 +7,7 @@ import type { Locale } from '@/lib/i18n/translations';
 import type { SyncEntity } from '@/lib/supabase/config';
 import type { SyncPayload } from '@/lib/supabase/data-service';
 import { remoteDelete, remotePushAll, remoteUpsert, type SyncStatus } from '@/lib/supabase/client-sync';
+import { emptySyncPayload, mergeSyncPayload } from '@/lib/supabase/merge';
 import {
   mockFindings,
   mockComplaints,
@@ -19,19 +20,48 @@ import {
 
 const STORE_VERSION = 3;
 
-async function syncToCloud(
+type SyncTask = () => Promise<void>;
+const pendingSyncTasks: SyncTask[] = [];
+let flushingQueue = false;
+
+async function flushPendingSync(
   getStatus: () => SyncStatus,
   setStatus: (s: SyncStatus) => void,
-  task: () => Promise<void>,
+) {
+  if (flushingQueue || pendingSyncTasks.length === 0) return;
+  const status = getStatus();
+  if (status === 'local' || status === 'offline') return;
+
+  flushingQueue = true;
+  while (pendingSyncTasks.length > 0) {
+    const task = pendingSyncTasks.shift();
+    if (!task) break;
+    try {
+      await task();
+      setStatus('synced');
+    } catch {
+      setStatus('error');
+      break;
+    }
+  }
+  flushingQueue = false;
+}
+
+function syncToCloud(
+  getStatus: () => SyncStatus,
+  setStatus: (s: SyncStatus) => void,
+  task: SyncTask,
 ) {
   const status = getStatus();
-  if (status === 'local' || status === 'offline' || status === 'syncing') return;
-  try {
-    await task();
-    setStatus('synced');
-  } catch {
-    setStatus('error');
+  if (status === 'local' || status === 'offline') return;
+
+  if (status === 'syncing') {
+    pendingSyncTasks.push(task);
+    return;
   }
+
+  pendingSyncTasks.push(task);
+  void flushPendingSync(getStatus, setStatus);
 }
 
 function getPayload(state: AppState): SyncPayload {
@@ -63,6 +93,7 @@ interface AppState {
   setLocale: (locale: Locale) => void;
   setSyncStatus: (status: SyncStatus) => void;
   hydrateFromCloud: (data: SyncPayload) => void;
+  bootstrapFromCloud: () => Promise<void>;
   pushLocalToCloud: () => Promise<void>;
   refreshFromCloud: () => Promise<void>;
   addFinding: (finding: Finding) => void;
@@ -123,6 +154,47 @@ export const useAppStore = create<AppState>()(
           customerExperiences: data.customerExperiences,
           documents: data.documents,
         }),
+      bootstrapFromCloud: async () => {
+        set({ syncStatus: 'syncing' });
+        try {
+          const res = await fetch('/api/sync');
+          const json = await res.json();
+
+          if (!json.configured) {
+            set({ syncStatus: 'local' });
+            return;
+          }
+          if (json.error) {
+            set({ syncStatus: 'error' });
+            return;
+          }
+
+          const cloud = json.data ?? emptySyncPayload();
+          const merged = mergeSyncPayload(getPayload(get()), cloud);
+          get().hydrateFromCloud(merged);
+
+          const hasLocalOnly = <T extends { id: string }>(mergedRows: T[], cloudRows: T[]) => {
+            const cloudIds = new Set(cloudRows.map((row) => row.id));
+            return mergedRows.some((row) => !cloudIds.has(row.id));
+          };
+
+          const needsPush =
+            hasLocalOnly(merged.findings, cloud.findings) ||
+            hasLocalOnly(merged.complaints, cloud.complaints) ||
+            hasLocalOnly(merged.rcas, cloud.rcas) ||
+            hasLocalOnly(merged.capas, cloud.capas) ||
+            hasLocalOnly(merged.audits, cloud.audits) ||
+            hasLocalOnly(merged.customerExperiences, cloud.customerExperiences) ||
+            hasLocalOnly(merged.documents, cloud.documents);
+
+          if (needsPush) await remotePushAll(merged);
+
+          set({ syncStatus: 'synced' });
+          await flushPendingSync(() => get().syncStatus, (syncStatus) => set({ syncStatus }));
+        } catch {
+          set({ syncStatus: 'offline' });
+        }
+      },
       pushLocalToCloud: async () => {
         set({ syncStatus: 'syncing' });
         try {
@@ -145,14 +217,10 @@ export const useAppStore = create<AppState>()(
             set({ syncStatus: 'error' });
             return;
           }
-          if (json.data) {
-            const total = Object.values(json.data).reduce<number>(
-              (sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0),
-              0,
-            );
-            if (total > 0) get().hydrateFromCloud(json.data);
-          }
+          const merged = mergeSyncPayload(getPayload(get()), json.data ?? emptySyncPayload());
+          get().hydrateFromCloud(merged);
           set({ syncStatus: 'synced' });
+          await flushPendingSync(() => get().syncStatus, (syncStatus) => set({ syncStatus }));
         } catch {
           set({ syncStatus: 'offline' });
         }
