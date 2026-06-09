@@ -59,7 +59,7 @@ export function Sidebar() {
 
   const navContent = (
     <>
-      <div className="flex h-16 items-center justify-between gap-3 border-b border-slate-800 px-4">
+      <div className="flex h-[4.5rem] items-center justify-between gap-3 border-b border-slate-800 px-4">
         <Link
           href="/"
           onClick={() => setMobileSidebarOpen(false)}
@@ -69,7 +69,7 @@ export function Sidebar() {
           <div
             className={cn(
               'relative shrink-0',
-              sidebarOpen || mobileSidebarOpen ? 'h-11 w-10' : 'h-9 w-9',
+              sidebarOpen || mobileSidebarOpen ? 'h-16 w-14' : 'h-11 w-11',
             )}
           >
             <Image
@@ -77,7 +77,7 @@ export function Sidebar() {
               alt="ASQC PRO - Airport Service Quality Control"
               fill
               priority
-              sizes="(max-width: 768px) 40px, 36px"
+              sizes="(max-width: 768px) 56px, 44px"
               className="object-contain object-center"
             />
           </div>
