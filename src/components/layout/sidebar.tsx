@@ -68,22 +68,21 @@ export function Sidebar() {
         >
           <div
             className={cn(
-              'relative shrink-0 overflow-hidden rounded-md bg-white',
+              'relative shrink-0',
               sidebarOpen || mobileSidebarOpen ? 'h-10 w-[11.5rem]' : 'h-9 w-9',
             )}
           >
             <Image
-              src="/images/injourney-airports-logo.jpg"
+              src={
+                sidebarOpen || mobileSidebarOpen
+                  ? '/images/injourney-airports-logo.png'
+                  : '/images/injourney-airports-emblem.png'
+              }
               alt="inJourney Airports"
               fill
               priority
               sizes="(max-width: 768px) 184px, 36px"
-              className={cn(
-                'object-contain p-0.5',
-                sidebarOpen || mobileSidebarOpen
-                  ? 'object-center'
-                  : 'object-left scale-[2.8] origin-left',
-              )}
+              className="object-contain object-left"
             />
           </div>
         </Link>
