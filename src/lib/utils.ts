@@ -19,6 +19,17 @@ export function formatDate(date: string | Date): string {
   });
 }
 
+export function getCreatedAtDisplay(record: {
+  createdAt?: string;
+  date?: string;
+  time?: string;
+}): string {
+  if (record.createdAt) return formatDateTime(record.createdAt);
+  if (record.date && record.time) return `${formatDate(record.date)} ${record.time}`;
+  if (record.date) return formatDate(record.date);
+  return '-';
+}
+
 export function formatDateTime(date: string | Date): string {
   return new Date(date).toLocaleString('id-ID', {
     day: '2-digit',

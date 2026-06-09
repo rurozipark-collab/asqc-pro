@@ -1,131 +1,92 @@
 import PptxGenJS from 'pptxgenjs';
-import { dashboardKPI, mockFindings, mockComplaints, mockCAPAs } from '@/lib/data/mock-data';
 import { AIRPORT_NAME } from '@/lib/data/master-areas';
+import type { ExportPayload } from '@/lib/export/export-data';
+import { EXPORT_LABELS, labelRisk, labelStatus, reportTitle } from '@/lib/export/export-data';
 
-export async function generatePPTXReport(reportType: string, period: string): Promise<Buffer> {
+export async function generatePPTXReport(reportType: string, period: string, payload: ExportPayload): Promise<Buffer> {
+  const { kpi, findings, complaints, capas } = payload;
   const pptx = new PptxGenJS();
+  const title = reportTitle(reportType);
   pptx.defineLayout({ name: 'ASQC', width: 13.33, height: 7.5 });
   pptx.layout = 'ASQC';
 
   const titleOpts: PptxGenJS.TextPropsOptions = { x: 0.5, w: 12, align: 'center', fontSize: 28, color: '06B6D4', bold: true };
   const subtitleOpts: PptxGenJS.TextPropsOptions = { x: 0.5, w: 12, align: 'center', fontSize: 14, color: '94A3B8' };
 
-  // Title Slide
   const slide1 = pptx.addSlide();
   slide1.background = { color: '0F172A' };
-  slide1.addText('ASQC PRO', titleOpts);
-  slide1.addText(`${reportType} Report`, { ...subtitleOpts, y: 2.5, fontSize: 20, color: 'FFFFFF' });
+  slide1.addText(EXPORT_LABELS.appName, titleOpts);
+  slide1.addText(title, { ...subtitleOpts, y: 2.5, fontSize: 20, color: 'FFFFFF' });
   slide1.addText(AIRPORT_NAME, { ...subtitleOpts, y: 3.5 });
-  slide1.addText(`Period: ${period}`, { ...subtitleOpts, y: 4.2, fontSize: 12 });
-  slide1.addText(`Generated: ${new Date().toLocaleDateString('id-ID')}`, { ...subtitleOpts, y: 4.8, fontSize: 12 });
+  slide1.addText(`${EXPORT_LABELS.period}: ${period}`, { ...subtitleOpts, y: 4.2, fontSize: 12 });
+  slide1.addText(`${EXPORT_LABELS.generated}: ${new Date().toLocaleDateString('id-ID')}`, { ...subtitleOpts, y: 4.8, fontSize: 12 });
 
-  // Executive Summary
   const slide2 = pptx.addSlide();
   slide2.background = { color: '0F172A' };
-  slide2.addText('Executive Summary', { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '06B6D4', bold: true });
+  slide2.addText(EXPORT_LABELS.executiveSummary, { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '06B6D4', bold: true });
   slide2.addText([
-    { text: `Service Quality Index: ${dashboardKPI.serviceQualityIndex}%`, options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
-    { text: `SLA Achievement: ${dashboardKPI.slaAchievement}%`, options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
-    { text: `Customer Satisfaction: ${dashboardKPI.customerSatisfactionIndex}%`, options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
-    { text: `Open Findings: ${dashboardKPI.openFindings} | Overdue: ${dashboardKPI.overdueFindings}`, options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
-    { text: `Open Complaints: ${dashboardKPI.openComplaints}`, options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
+    { text: `Indeks Kualitas Layanan: ${kpi.serviceQualityIndex}%`, options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
+    { text: `Pencapaian SLA: ${kpi.slaAchievement}%`, options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
+    { text: `Kepuasan Pelanggan: ${kpi.customerSatisfactionIndex}%`, options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
+    { text: `Temuan Terbuka: ${kpi.openFindings} | Terlambat: ${kpi.overdueFindings}`, options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
+    { text: `Keluhan Terbuka: ${kpi.openComplaints}`, options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
   ], { x: 0.8, y: 1.5, w: 11, h: 4 });
 
-  // KPI Achievement
   const slide3 = pptx.addSlide();
   slide3.background = { color: '0F172A' };
-  slide3.addText('KPI Achievement', { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '06B6D4', bold: true });
+  slide3.addText(EXPORT_LABELS.kpiDashboard, { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '06B6D4', bold: true });
   slide3.addTable([
     [
-      { text: 'KPI', options: { fill: { color: '06B6D4' }, color: 'FFFFFF', bold: true } },
-      { text: 'Value', options: { fill: { color: '06B6D4' }, color: 'FFFFFF', bold: true } },
-      { text: 'Status', options: { fill: { color: '06B6D4' }, color: 'FFFFFF', bold: true } },
+      { text: EXPORT_LABELS.metric, options: { fill: { color: '06B6D4' }, color: 'FFFFFF', bold: true } },
+      { text: EXPORT_LABELS.value, options: { fill: { color: '06B6D4' }, color: 'FFFFFF', bold: true } },
+      { text: EXPORT_LABELS.status, options: { fill: { color: '06B6D4' }, color: 'FFFFFF', bold: true } },
     ],
-    [
-      { text: 'SLA Achievement' },
-      { text: `${dashboardKPI.slaAchievement}%` },
-      { text: 'On Target' },
-    ],
-    [
-      { text: 'Service Quality Index' },
-      { text: `${dashboardKPI.serviceQualityIndex}%` },
-      { text: 'Good' },
-    ],
-    [
-      { text: 'Customer Satisfaction' },
-      { text: `${dashboardKPI.customerSatisfactionIndex}%` },
-      { text: 'Good' },
-    ],
-    [
-      { text: 'Audit Compliance' },
-      { text: `${dashboardKPI.auditComplianceScore}%` },
-      { text: 'Good' },
-    ],
+    [{ text: 'Pencapaian SLA' }, { text: `${kpi.slaAchievement}%` }, { text: EXPORT_LABELS.onTarget }],
+    [{ text: 'Indeks Kualitas Layanan' }, { text: `${kpi.serviceQualityIndex}%` }, { text: EXPORT_LABELS.good }],
+    [{ text: 'Kepuasan Pelanggan' }, { text: `${kpi.customerSatisfactionIndex}%` }, { text: EXPORT_LABELS.good }],
+    [{ text: 'Kepatuhan Audit' }, { text: `${kpi.auditComplianceScore}%` }, { text: EXPORT_LABELS.good }],
   ], { x: 1, y: 1.5, w: 11, fontSize: 12, color: 'E2E8F0', border: { type: 'solid', color: '334155' } });
 
-  // Findings Analysis
   const slide4 = pptx.addSlide();
   slide4.background = { color: '0F172A' };
-  slide4.addText('Findings Analysis', { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '06B6D4', bold: true });
+  slide4.addText(EXPORT_LABELS.findingsSummary, { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '06B6D4', bold: true });
   slide4.addTable([
-    [
-      { text: 'Finding #' }, { text: 'Location' }, { text: 'Category' }, { text: 'Risk' }, { text: 'Status' },
-    ],
-    ...mockFindings.map((f) => [
+    [{ text: 'No. Temuan' }, { text: 'Lokasi' }, { text: 'Kategori' }, { text: 'Risiko' }, { text: 'Status' }],
+    ...findings.slice(0, 8).map((f) => [
       { text: f.findingNumber },
       { text: `${f.terminal} - ${f.area}` },
       { text: f.category },
-      { text: f.riskLevel },
-      { text: f.status },
+      { text: labelRisk(f.riskLevel) },
+      { text: labelStatus(f.status) },
     ]),
-  ], { x: 0.5, y: 1.2, w: 12, fontSize: 10, color: 'E2E8F0' });
+  ], { x: 0.5, y: 1.2, w: 12, fontSize: 10, color: 'E2E8F0', border: { type: 'solid', color: '334155' } });
 
-  // Complaint Analysis
   const slide5 = pptx.addSlide();
   slide5.background = { color: '0F172A' };
-  slide5.addText('Complaint Analysis', { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '8B5CF6', bold: true });
+  slide5.addText(EXPORT_LABELS.complaintSummary, { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '06B6D4', bold: true });
   slide5.addTable([
-    [
-      { text: 'Complaint #' }, { text: 'Channel' }, { text: 'Category' }, { text: 'Location' }, { text: 'Status' },
-    ],
-    ...mockComplaints.map((c) => [
+    [{ text: 'No. Keluhan' }, { text: 'Saluran' }, { text: 'Kategori' }, { text: 'Status' }],
+    ...complaints.slice(0, 8).map((c) => [
       { text: c.complaintNumber },
       { text: c.channel },
       { text: c.category },
-      { text: `${c.terminal} - ${c.area}` },
-      { text: c.status },
+      { text: labelStatus(c.status) },
     ]),
-  ], { x: 0.5, y: 1.2, w: 12, fontSize: 10, color: 'E2E8F0' });
+  ], { x: 0.5, y: 1.2, w: 12, fontSize: 10, color: 'E2E8F0', border: { type: 'solid', color: '334155' } });
 
-  // CAPA Progress
   const slide6 = pptx.addSlide();
   slide6.background = { color: '0F172A' };
-  slide6.addText('CAPA Progress', { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '10B981', bold: true });
+  slide6.addText(EXPORT_LABELS.capaSummary, { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '06B6D4', bold: true });
   slide6.addTable([
-    [
-      { text: 'CAPA #' }, { text: 'Title' }, { text: 'Status' }, { text: 'Progress' }, { text: 'Due Date' },
-    ],
-    ...mockCAPAs.map((c) => [
+    [{ text: 'No. CAPA' }, { text: 'Judul' }, { text: 'Status' }, { text: 'Progres' }],
+    ...capas.slice(0, 8).map((c) => [
       { text: c.capaNumber },
       { text: c.title },
-      { text: c.status },
+      { text: labelStatus(c.status) },
       { text: `${c.progress}%` },
-      { text: c.dueDate },
     ]),
-  ], { x: 0.5, y: 1.2, w: 12, fontSize: 10, color: 'E2E8F0' });
+  ], { x: 0.5, y: 1.2, w: 12, fontSize: 10, color: 'E2E8F0', border: { type: 'solid', color: '334155' } });
 
-  // Improvement Plan
-  const slide7 = pptx.addSlide();
-  slide7.background = { color: '0F172A' };
-  slide7.addText('Improvement Plan', { x: 0.5, y: 0.3, w: 12, fontSize: 24, color: '06B6D4', bold: true });
-  slide7.addText([
-    { text: 'Deploy AI-based passenger flow prediction', options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
-    { text: 'Implement IoT toilet monitoring sensors', options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
-    { text: 'Update digital wayfinding system', options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
-    { text: 'Automated stakeholder SLA escalation', options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
-    { text: 'Reduce queue time target to 12 minutes', options: { bullet: true, color: 'E2E8F0', fontSize: 14 } },
-  ], { x: 0.8, y: 1.5, w: 11, h: 4 });
-
-  const output = await pptx.write({ outputType: 'nodebuffer' });
-  return output as Buffer;
+  const arrayBuffer = await pptx.write({ outputType: 'arraybuffer' });
+  return Buffer.from(arrayBuffer as ArrayBuffer);
 }

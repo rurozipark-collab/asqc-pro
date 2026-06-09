@@ -8,6 +8,7 @@ import type { SyncEntity } from '@/lib/supabase/config';
 import type { SyncPayload } from '@/lib/supabase/data-service';
 import { remoteDelete, remotePushAll, remoteUpsert, type SyncStatus } from '@/lib/supabase/client-sync';
 import { emptySyncPayload, mergeSyncPayload } from '@/lib/supabase/merge';
+import { addDeletedId, filterPayloadDeleted, type DeletedIds } from '@/lib/sync/deleted-ids';
 import {
   mockFindings,
   mockComplaints,
@@ -18,7 +19,7 @@ import {
   mockCX,
 } from '@/lib/data/mock-data';
 
-const STORE_VERSION = 3;
+const STORE_VERSION = 4;
 
 type SyncTask = () => Promise<void>;
 const pendingSyncTasks: SyncTask[] = [];
@@ -80,6 +81,7 @@ interface AppState {
   storeVersion: number;
   locale: Locale;
   syncStatus: SyncStatus;
+  deletedIds: DeletedIds;
   findings: Finding[];
   complaints: Complaint[];
   rcas: RCA[];
@@ -125,6 +127,7 @@ export const useAppStore = create<AppState>()(
       storeVersion: STORE_VERSION,
       locale: 'id',
       syncStatus: 'local',
+      deletedIds: {},
       findings: [],
       complaints: [],
       rcas: [],
@@ -170,7 +173,7 @@ export const useAppStore = create<AppState>()(
           }
 
           const cloud = json.data ?? emptySyncPayload();
-          const merged = mergeSyncPayload(getPayload(get()), cloud);
+          const merged = mergeSyncPayload(getPayload(get()), cloud, get().deletedIds);
           get().hydrateFromCloud(merged);
 
           const hasLocalOnly = <T extends { id: string }>(mergedRows: T[], cloudRows: T[]) => {
@@ -224,8 +227,8 @@ export const useAppStore = create<AppState>()(
             set({ syncStatus: 'error' });
             return;
           }
-          const merged = mergeSyncPayload(getPayload(get()), json.data ?? emptySyncPayload());
-          get().hydrateFromCloud(merged);
+          const cloud = filterPayloadDeleted(json.data ?? emptySyncPayload(), get().deletedIds);
+          get().hydrateFromCloud(cloud);
           set({ syncStatus: 'synced' });
           await flushPendingSync(() => get().syncStatus, (syncStatus) => set({ syncStatus }));
         } catch {
@@ -233,11 +236,12 @@ export const useAppStore = create<AppState>()(
         }
       },
       addFinding: (finding) => {
-        set((s) => ({ findings: [finding, ...s.findings] }));
+        const record = { ...finding, createdAt: finding.createdAt ?? new Date().toISOString() };
+        set((s) => ({ findings: [record, ...s.findings] }));
         syncToCloud(
           () => get().syncStatus,
           (syncStatus) => set({ syncStatus }),
-          () => remoteUpsert('findings', finding),
+          () => remoteUpsert('findings', record),
         );
       },
       addComplaint: (complaint) => {
@@ -319,7 +323,10 @@ export const useAppStore = create<AppState>()(
         }
       },
       deleteFinding: (id) => {
-        set((s) => ({ findings: s.findings.filter((f) => f.id !== id) }));
+        set((s) => ({
+          findings: s.findings.filter((f) => f.id !== id),
+          deletedIds: addDeletedId(s.deletedIds, 'findings', id),
+        }));
         syncToCloud(
           () => get().syncStatus,
           (syncStatus) => set({ syncStatus }),
@@ -327,7 +334,10 @@ export const useAppStore = create<AppState>()(
         );
       },
       deleteComplaint: (id) => {
-        set((s) => ({ complaints: s.complaints.filter((c) => c.id !== id) }));
+        set((s) => ({
+          complaints: s.complaints.filter((c) => c.id !== id),
+          deletedIds: addDeletedId(s.deletedIds, 'complaints', id),
+        }));
         syncToCloud(
           () => get().syncStatus,
           (syncStatus) => set({ syncStatus }),
@@ -335,7 +345,10 @@ export const useAppStore = create<AppState>()(
         );
       },
       deleteRCA: (id) => {
-        set((s) => ({ rcas: s.rcas.filter((r) => r.id !== id) }));
+        set((s) => ({
+          rcas: s.rcas.filter((r) => r.id !== id),
+          deletedIds: addDeletedId(s.deletedIds, 'rcas', id),
+        }));
         syncToCloud(
           () => get().syncStatus,
           (syncStatus) => set({ syncStatus }),
@@ -343,7 +356,10 @@ export const useAppStore = create<AppState>()(
         );
       },
       deleteCAPA: (id) => {
-        set((s) => ({ capas: s.capas.filter((c) => c.id !== id) }));
+        set((s) => ({
+          capas: s.capas.filter((c) => c.id !== id),
+          deletedIds: addDeletedId(s.deletedIds, 'capas', id),
+        }));
         syncToCloud(
           () => get().syncStatus,
           (syncStatus) => set({ syncStatus }),
@@ -351,7 +367,10 @@ export const useAppStore = create<AppState>()(
         );
       },
       deleteAudit: (id) => {
-        set((s) => ({ audits: s.audits.filter((a) => a.id !== id) }));
+        set((s) => ({
+          audits: s.audits.filter((a) => a.id !== id),
+          deletedIds: addDeletedId(s.deletedIds, 'audits', id),
+        }));
         syncToCloud(
           () => get().syncStatus,
           (syncStatus) => set({ syncStatus }),
@@ -359,7 +378,10 @@ export const useAppStore = create<AppState>()(
         );
       },
       deleteDocument: (id) => {
-        set((s) => ({ documents: s.documents.filter((d) => d.id !== id) }));
+        set((s) => ({
+          documents: s.documents.filter((d) => d.id !== id),
+          deletedIds: addDeletedId(s.deletedIds, 'documents', id),
+        }));
         syncToCloud(
           () => get().syncStatus,
           (syncStatus) => set({ syncStatus }),
@@ -375,7 +397,10 @@ export const useAppStore = create<AppState>()(
         );
       },
       deleteCustomerExperience: (id) => {
-        set((s) => ({ customerExperiences: s.customerExperiences.filter((c) => c.id !== id) }));
+        set((s) => ({
+          customerExperiences: s.customerExperiences.filter((c) => c.id !== id),
+          deletedIds: addDeletedId(s.deletedIds, 'customerExperiences', id),
+        }));
         syncToCloud(
           () => get().syncStatus,
           (syncStatus) => set({ syncStatus }),
@@ -430,6 +455,7 @@ export const useAppStore = create<AppState>()(
             audits: state.audits ?? [],
             documents: state.documents ?? [],
             customerExperiences: state.customerExperiences ?? [],
+            deletedIds: state.deletedIds ?? {},
           } as AppState;
         }
         return state as AppState;
@@ -444,6 +470,7 @@ export const useAppStore = create<AppState>()(
         audits: state.audits,
         documents: state.documents,
         customerExperiences: state.customerExperiences,
+        deletedIds: state.deletedIds,
       }),
     },
   ),

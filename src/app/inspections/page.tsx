@@ -10,7 +10,7 @@ import { AreaSelector } from '@/components/forms/area-selector';
 import { PhotoUpload } from '@/components/forms/photo-upload';
 import { useAppStore } from '@/lib/store';
 import { FINDING_CATEGORIES, AIRPORT_CODE } from '@/lib/data/master-areas';
-import { formatDate, getRiskColor, getStatusColor, generateReferenceCode, INPUT_CLASS, TABLE_SCROLL_CLASS } from '@/lib/utils';
+import { formatDate, getCreatedAtDisplay, getRiskColor, getStatusColor, generateReferenceCode, INPUT_CLASS, TABLE_SCROLL_CLASS } from '@/lib/utils';
 import type { Finding, RiskLevel, Priority } from '@/types';
 import { useTranslation } from '@/lib/i18n/use-translation';
 import { Plus, MapPin, Sparkles, Eye } from 'lucide-react';
@@ -85,11 +85,13 @@ export default function InspectionsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const now = new Date();
     const finding: Finding = {
       id: Date.now().toString(),
       findingNumber: generateReferenceCode('FND', findings.map((f) => f.findingNumber)),
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: now.toISOString(),
+      date: now.toISOString().split('T')[0],
+      time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
       airport: AIRPORT_CODE,
       terminal: form.terminal, zone: form.zone, area: form.area, subArea: form.subArea, asset: '',
       category: form.category, riskLevel: form.riskLevel, priority: form.priority,
@@ -216,6 +218,7 @@ export default function InspectionsPage() {
                 <thead>
                   <tr className="border-b border-slate-700 text-slate-400">
                     <th className="text-left py-3 px-4">Finding #</th>
+                    <th className="text-left py-3 px-4">{t('inspections.inputTime')}</th>
                     <th className="text-left py-3 px-4">Date</th>
                     <th className="text-left py-3 px-4">Location</th>
                     <th className="text-left py-3 px-4">Category</th>
@@ -230,6 +233,7 @@ export default function InspectionsPage() {
                   {findings.map((f) => (
                     <tr key={f.id} className="border-b border-slate-800 hover:bg-slate-800/50">
                       <td className="py-3 px-4 font-mono text-cyan-400 text-xs">{f.findingNumber}</td>
+                      <td className="py-3 px-4 text-slate-400 text-xs whitespace-nowrap">{getCreatedAtDisplay(f)}</td>
                       <td className="py-3 px-4 text-slate-400">{formatDate(f.date)}</td>
                       <td className="py-3 px-4 text-slate-300">{f.terminal} → {f.area}</td>
                       <td className="py-3 px-4">{f.category}</td>
@@ -266,6 +270,7 @@ export default function InspectionsPage() {
               <p className="text-slate-300">{selectedFinding.description}</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div><span className="text-slate-400">Location:</span> <p>{selectedFinding.terminal} → {selectedFinding.zone} → {selectedFinding.area} → {selectedFinding.subArea}</p></div>
+                <div><span className="text-slate-400">{t('inspections.inputTime')}:</span> <p>{getCreatedAtDisplay(selectedFinding)}</p></div>
                 <div><span className="text-slate-400">PIC:</span> <p>{selectedFinding.pic}</p></div>
                 <div><span className="text-slate-400">Due Date:</span> <p>{formatDate(selectedFinding.dueDate)}</p></div>
                 <div><span className="text-slate-400">Stakeholder:</span> <p>{selectedFinding.stakeholder}</p></div>

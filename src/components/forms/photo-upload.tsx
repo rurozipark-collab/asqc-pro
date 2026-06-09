@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { Camera, X, ImageIcon } from 'lucide-react';
+import { Camera, X, ImageIcon, Images } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n/use-translation';
 import { compressImageFile } from '@/lib/sync/compress-image';
@@ -14,10 +14,10 @@ interface PhotoUploadProps {
 
 export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProps) {
   const { t } = useTranslation();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const processFiles = async (files: FileList | null) => {
     if (!files) return;
 
     const remaining = maxPhotos - photos.length;
@@ -34,7 +34,11 @@ export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProp
     }
 
     onChange(nextPhotos.slice(0, maxPhotos));
-    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    await processFiles(e.target.files);
+    e.target.value = '';
   };
 
   const removePhoto = (index: number) => {
@@ -43,25 +47,46 @@ export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProp
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <input
-          ref={inputRef}
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <input
+          ref={galleryInputRef}
           type="file"
           accept="image/*"
           multiple
-          capture="environment"
           className="hidden"
           onChange={handleFileSelect}
         />
         <Button
           type="button"
           variant="outline"
-          onClick={() => inputRef.current?.click()}
+          onClick={() => cameraInputRef.current?.click()}
           disabled={photos.length >= maxPhotos}
         >
           <Camera className="h-4 w-4" />
-          {t('common.upload')} {photos.length > 0 && `(${photos.length}/${maxPhotos})`}
+          {t('inspections.takePhoto')}
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => galleryInputRef.current?.click()}
+          disabled={photos.length >= maxPhotos}
+        >
+          <Images className="h-4 w-4" />
+          {t('inspections.pickFromGallery')}
+        </Button>
+        {photos.length > 0 && (
+          <span className="text-xs text-slate-400">
+            {photos.length}/{maxPhotos}
+          </span>
+        )}
         {photos.length >= maxPhotos && (
           <span className="text-xs text-amber-400">{t('inspections.maxPhotos', { n: String(maxPhotos) })}</span>
         )}
@@ -75,7 +100,7 @@ export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProp
               <button
                 type="button"
                 onClick={() => removePhoto(index)}
-                className="absolute top-1 right-1 rounded-full bg-red-600/90 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1 rounded-full bg-red-600/90 p-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
               >
                 <X className="h-3 w-3 text-white" />
               </button>

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { ReportType } from '@/types';
 import { useTranslation } from '@/lib/i18n/use-translation';
+import { useAppStore } from '@/lib/store';
 import { FileBarChart, Download, FileSpreadsheet, Presentation, Loader2 } from 'lucide-react';
 
 const reportTypes: { type: ReportType; label: string; description: string }[] = [
@@ -25,6 +26,15 @@ const reportTypes: { type: ReportType; label: string; description: string }[] = 
 
 export default function ReportsPage() {
   const { t } = useTranslation();
+  const {
+    findings,
+    complaints,
+    rcas,
+    capas,
+    audits,
+    customerExperiences,
+    documents,
+  } = useAppStore();
   const [generating, setGenerating] = useState<string | null>(null);
 
   const exportReport = async (type: ReportType, format: 'pdf' | 'excel' | 'pptx') => {
@@ -33,7 +43,11 @@ export default function ReportsPage() {
       const res = await fetch(`/api/export/${format}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reportType: type, period: new Date().toISOString().split('T')[0] }),
+        body: JSON.stringify({
+          reportType: type,
+          period: new Date().toISOString().split('T')[0],
+          data: { findings, complaints, rcas, capas, audits, customerExperiences, documents },
+        }),
       });
       if (res.ok) {
         const blob = await res.blob();

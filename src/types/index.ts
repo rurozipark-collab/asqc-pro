@@ -31,6 +31,7 @@ export interface AreaHierarchy {
 export interface Finding {
   id: string;
   findingNumber: string;
+  createdAt?: string;
   date: string;
   time: string;
   airport: string;
@@ -58,6 +59,7 @@ export interface Finding {
 export interface Complaint {
   id: string;
   complaintNumber: string;
+  createdAt?: string;
   date: string;
   channel: ComplaintChannel;
   customerType: CustomerType;
@@ -94,6 +96,7 @@ export interface RCA {
 export interface CAPA {
   id: string;
   capaNumber: string;
+  createdAt?: string;
   title: string;
   sourceType: 'Finding' | 'Complaint' | 'RCA' | 'Audit';
   sourceId: string;
@@ -113,6 +116,7 @@ export interface CAPA {
 export interface Audit {
   id: string;
   auditNumber: string;
+  createdAt?: string;
   auditType: AuditType;
   date: string;
   terminal: string;
@@ -131,6 +135,7 @@ export interface Audit {
 
 export interface CustomerExperience {
   id: string;
+  createdAt?: string;
   date: string;
   terminal: string;
   area: string;
@@ -149,6 +154,7 @@ export interface CustomerExperience {
 
 export interface Document {
   id: string;
+  createdAt?: string;
   title: string;
   type: DocumentType;
   version: string;

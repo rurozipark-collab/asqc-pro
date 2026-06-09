@@ -1,81 +1,103 @@
 import * as XLSX from 'xlsx';
-import { dashboardKPI, mockFindings, mockComplaints, mockAudits, mockCAPAs, mockCX, monthlyFindingsTrend } from '@/lib/data/mock-data';
 import { AIRPORT_NAME } from '@/lib/data/master-areas';
+import type { ExportPayload } from '@/lib/export/export-data';
+import { EXPORT_LABELS, labelRisk, labelStatus, reportTitle } from '@/lib/export/export-data';
+import { getCreatedAtDisplay } from '@/lib/utils';
 
-export function generateExcelReport(reportType: string, period: string): Buffer {
+export function generateExcelReport(reportType: string, period: string, payload: ExportPayload): Buffer {
+  const { kpi, findings, complaints, audits, capas, customerExperiences } = payload;
   const wb = XLSX.utils.book_new();
+  const title = reportTitle(reportType);
 
-  const header = [[`ASQC PRO - ${reportType} Report`], [AIRPORT_NAME], [`Period: ${period}`], [`Generated: ${new Date().toLocaleDateString('id-ID')}`], []];
+  const header = [
+    [`${EXPORT_LABELS.appName} - ${title}`],
+    [AIRPORT_NAME],
+    [`${EXPORT_LABELS.period}: ${period}`],
+    [`${EXPORT_LABELS.generated}: ${new Date().toLocaleDateString('id-ID')}`],
+    [],
+  ];
 
-  // Executive Dashboard Sheet
   const kpiData = [
     ...header,
-    ['KPI Dashboard'],
-    ['Metric', 'Value'],
-    ['Total Findings', dashboardKPI.totalFindings],
-    ['Open Findings', dashboardKPI.openFindings],
-    ['Closed Findings', dashboardKPI.closedFindings],
-    ['Overdue Findings', dashboardKPI.overdueFindings],
-    ['Open Complaints', dashboardKPI.openComplaints],
-    ['Closed Complaints', dashboardKPI.closedComplaints],
-    ['SLA Achievement (%)', dashboardKPI.slaAchievement],
-    ['Customer Satisfaction Index (%)', dashboardKPI.customerSatisfactionIndex],
-    ['Service Quality Index (%)', dashboardKPI.serviceQualityIndex],
-    ['Audit Compliance Score (%)', dashboardKPI.auditComplianceScore],
+    [EXPORT_LABELS.kpiDashboard],
+    [EXPORT_LABELS.metric, EXPORT_LABELS.value],
+    ['Total Temuan', kpi.totalFindings],
+    ['Temuan Terbuka', kpi.openFindings],
+    ['Temuan Tertutup', kpi.closedFindings],
+    ['Temuan Terlambat', kpi.overdueFindings],
+    ['Keluhan Terbuka', kpi.openComplaints],
+    ['Keluhan Tertutup', kpi.closedComplaints],
+    ['Pencapaian SLA (%)', kpi.slaAchievement],
+    ['Kepuasan Pelanggan (%)', kpi.customerSatisfactionIndex],
+    ['Indeks Kualitas Layanan (%)', kpi.serviceQualityIndex],
+    ['Kepatuhan Audit (%)', kpi.auditComplianceScore],
   ];
   const wsKPI = XLSX.utils.aoa_to_sheet(kpiData);
   wsKPI['!cols'] = [{ wch: 35 }, { wch: 15 }];
-  XLSX.utils.book_append_sheet(wb, wsKPI, 'Executive Dashboard');
+  XLSX.utils.book_append_sheet(wb, wsKPI, EXPORT_LABELS.sheets.executive);
 
-  // Findings Sheet
   const findingsData = [
-    ['Finding #', 'Date', 'Terminal', 'Zone', 'Area', 'Category', 'Risk', 'Priority', 'Status', 'Stakeholder', 'PIC', 'Due Date', 'Description'],
-    ...mockFindings.map((f) => [f.findingNumber, f.date, f.terminal, f.zone, f.area, f.category, f.riskLevel, f.priority, f.status, f.stakeholder, f.pic, f.dueDate, f.description]),
+    ['No. Temuan', 'Waktu Input', 'Tanggal', 'Terminal', 'Zona', 'Area', 'Kategori', 'Risiko', 'Prioritas', 'Status', 'Stakeholder', 'PIC', 'Batas Waktu', 'Deskripsi'],
+    ...findings.map((f) => [
+      f.findingNumber,
+      getCreatedAtDisplay(f),
+      f.date,
+      f.terminal,
+      f.zone,
+      f.area,
+      f.category,
+      labelRisk(f.riskLevel),
+      labelRisk(f.priority),
+      labelStatus(f.status),
+      f.stakeholder,
+      f.pic,
+      f.dueDate,
+      f.description,
+    ]),
   ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(findingsData), 'Findings');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(findingsData), EXPORT_LABELS.sheets.findings);
 
-  // Complaints Sheet
   const complaintsData = [
-    ['Complaint #', 'Date', 'Channel', 'Customer Type', 'Category', 'Terminal', 'Area', 'Status', 'Description'],
-    ...mockComplaints.map((c) => [c.complaintNumber, c.date, c.channel, c.customerType, c.category, c.terminal, c.area, c.status, c.description]),
+    ['No. Keluhan', 'Waktu Input', 'Tanggal', 'Saluran', 'Tipe Pelanggan', 'Kategori', 'Terminal', 'Area', 'Status', 'Deskripsi'],
+    ...complaints.map((c) => [
+      c.complaintNumber,
+      getCreatedAtDisplay(c),
+      c.date,
+      c.channel,
+      c.customerType,
+      c.category,
+      c.terminal,
+      c.area,
+      labelStatus(c.status),
+      c.description,
+    ]),
   ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(complaintsData), 'Complaints');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(complaintsData), EXPORT_LABELS.sheets.complaints);
 
-  // Audits Sheet
   const auditsData = [
-    ['Audit #', 'Type', 'Date', 'Terminal', 'Area', 'Score', 'NC', 'OBS', 'OFI', 'Status'],
-    ...mockAudits.map((a) => [a.auditNumber, a.auditType, a.date, a.terminal, a.area, a.score, a.nonConformance, a.observation, a.opportunityForImprovement, a.status]),
+    ['No. Audit', 'Tipe', 'Tanggal', 'Terminal', 'Area', 'Skor', 'NC', 'OBS', 'OFI', 'Status'],
+    ...audits.map((a) => [a.auditNumber, a.auditType, a.date, a.terminal, a.area, a.score, a.nonConformance, a.observation, a.opportunityForImprovement, labelStatus(a.status)]),
   ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(auditsData), 'Audits');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(auditsData), EXPORT_LABELS.sheets.audits);
 
-  // CAPA Sheet
   const capaData = [
-    ['CAPA #', 'Title', 'Source', 'Assigned To', 'Stakeholder', 'Status', 'Progress', 'Due Date', 'Overdue'],
-    ...mockCAPAs.map((c) => [c.capaNumber, c.title, `${c.sourceType}:${c.sourceId}`, c.assignedTo, c.stakeholder, c.status, `${c.progress}%`, c.dueDate, c.isOverdue ? 'Yes' : 'No']),
+    ['No. CAPA', 'Judul', 'Sumber', 'Ditugaskan', 'Stakeholder', 'Status', 'Progres', 'Batas Waktu', 'Terlambat'],
+    ...capas.map((c) => [c.capaNumber, c.title, `${c.sourceType}:${c.sourceId}`, c.assignedTo, c.stakeholder, labelStatus(c.status), `${c.progress}%`, c.dueDate, c.isOverdue ? EXPORT_LABELS.yes : EXPORT_LABELS.no]),
   ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(capaData), 'CAPA');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(capaData), EXPORT_LABELS.sheets.capa);
 
-  // CX Sheet
   const cxData = [
-    ['Date', 'Terminal', 'Area', 'CX Score', 'NPS', 'CSAT', 'CES', 'Process Time', 'Queue Time'],
-    ...mockCX.map((c) => [c.date, c.terminal, c.area, c.cxScore, c.nps, c.csat, c.ces, c.waitingTime, c.queueTime]),
+    ['Tanggal', 'Terminal', 'Area', 'Skor CX', 'NPS', 'CSAT', 'CES', 'Waktu Proses', 'Waktu Antrian'],
+    ...customerExperiences.map((c) => [c.date, c.terminal, c.area, c.cxScore, c.nps, c.csat, c.ces, c.waitingTime, c.queueTime]),
   ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cxData), 'Customer Experience');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cxData), EXPORT_LABELS.sheets.cx);
 
-  // Trend Analysis Sheet
-  const trendData = [
-    ['Month', 'Findings', 'Closed', 'Complaints'],
-    ...monthlyFindingsTrend.map((t, i) => [t.month, t.findings, t.closed, '']),
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(trendData), 'Trend Analysis');
-
-  // Raw Data Sheet
   const rawData = [
-    ['Type', 'ID', 'Date', 'Location', 'Category', 'Status'],
-    ...mockFindings.map((f) => ['Finding', f.findingNumber, f.date, `${f.terminal}/${f.area}`, f.category, f.status]),
-    ...mockComplaints.map((c) => ['Complaint', c.complaintNumber, c.date, `${c.terminal}/${c.area}`, c.category, c.status]),
+    ['Tipe', 'ID', 'Waktu Input', 'Tanggal', 'Lokasi', 'Kategori', 'Status'],
+    ...findings.map((f) => ['Temuan', f.findingNumber, getCreatedAtDisplay(f), f.date, `${f.terminal}/${f.area}`, f.category, labelStatus(f.status)]),
+    ...complaints.map((c) => ['Keluhan', c.complaintNumber, getCreatedAtDisplay(c), c.date, `${c.terminal}/${c.area}`, c.category, labelStatus(c.status)]),
   ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rawData), 'Raw Data');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rawData), EXPORT_LABELS.sheets.raw);
 
   return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
 }
