@@ -64,25 +64,21 @@ export function Sidebar() {
           href="/"
           onClick={() => setMobileSidebarOpen(false)}
           className="flex min-w-0 flex-1 items-center"
-          aria-label="inJourney Airports"
+          aria-label="ASQC PRO"
         >
           <div
             className={cn(
               'relative shrink-0',
-              sidebarOpen || mobileSidebarOpen ? 'h-10 w-[11.5rem]' : 'h-9 w-9',
+              sidebarOpen || mobileSidebarOpen ? 'h-11 w-10' : 'h-9 w-9',
             )}
           >
             <Image
-              src={
-                sidebarOpen || mobileSidebarOpen
-                  ? '/images/injourney-airports-logo.png'
-                  : '/images/injourney-airports-emblem.png'
-              }
-              alt="inJourney Airports"
+              src="/images/asqc-logo.png"
+              alt="ASQC PRO - Airport Service Quality Control"
               fill
               priority
-              sizes="(max-width: 768px) 184px, 36px"
-              className="object-contain object-left"
+              sizes="(max-width: 768px) 40px, 36px"
+              className="object-contain object-center"
             />
           </div>
         </Link>
