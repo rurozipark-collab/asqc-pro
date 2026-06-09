@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import {
@@ -16,7 +17,6 @@ import {
   FileBarChart,
   Link2,
   Bot,
-  Plane,
   ChevronLeft,
   ChevronRight,
   X,
@@ -24,7 +24,6 @@ import {
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n/use-translation';
-import { AIRPORT_CODE } from '@/lib/data/master-areas';
 
 const navigation = [
   { key: 'nav.dashboard', href: '/', icon: LayoutDashboard },
@@ -61,17 +60,33 @@ export function Sidebar() {
   const navContent = (
     <>
       <div className="flex h-16 items-center justify-between gap-3 border-b border-slate-800 px-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
-            <Plane className="h-5 w-5 text-white" />
+        <Link
+          href="/"
+          onClick={() => setMobileSidebarOpen(false)}
+          className="flex min-w-0 flex-1 items-center"
+          aria-label="inJourney Airports"
+        >
+          <div
+            className={cn(
+              'relative shrink-0 overflow-hidden rounded-md bg-white',
+              sidebarOpen || mobileSidebarOpen ? 'h-10 w-[11.5rem]' : 'h-9 w-9',
+            )}
+          >
+            <Image
+              src="/images/injourney-airports-logo.jpg"
+              alt="inJourney Airports"
+              fill
+              priority
+              sizes="(max-width: 768px) 184px, 36px"
+              className={cn(
+                'object-contain p-0.5',
+                sidebarOpen || mobileSidebarOpen
+                  ? 'object-center'
+                  : 'object-left scale-[2.8] origin-left',
+              )}
+            />
           </div>
-          {(sidebarOpen || mobileSidebarOpen) && (
-            <div className="overflow-hidden">
-              <h1 className="text-sm font-bold text-white tracking-wide">ASQC PRO</h1>
-              <p className="text-[10px] text-cyan-400 font-medium">{AIRPORT_CODE}</p>
-            </div>
-          )}
-        </div>
+        </Link>
         <button
           type="button"
           onClick={() => setMobileSidebarOpen(false)}
